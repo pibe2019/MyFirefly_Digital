@@ -1,2 +1,18 @@
 # MyFirefly_Digital
 app de geolocalizacion, autocomplete de direcciones, ubicacion, rutas
+.instrucciones: 
+- la api minima para ejecutar la app es android 8.0 y superior.
+- deberas aceptar los permiso de ubicacion al entrar a la vista principal: la vista principal es la que se muestra por defecto.
+- para agregar uan cita minimo dbe ingresar el titulo.
+- API GEOCODING: para que no sea costoso el obtener las cordenadas cuando el usuario selecciona una direccion de la lista de sugerencias.
+- NEW API PLACE: la mas moderna para obtener direcciones solo necesita el placeId o la direccion.
+- API GOOGLE MAP: tuve que subscribirme con mi tarjeta.
+- arquitectura: MVVM, SOLID, CLEAN ARQUITECTURE
+- PATRONES: SINGLETON
+- DAGGER HILT: ESTA configurado, aunque falto la implementacion de dibujar rutas
+- ROOM.
+- LA APP ESTA IMPLEMENTADA DE FORMA REACTIVA CON estateFlot.
+
+  me falto terminar la parte de rutas entre otras cosas pero es algo que ya realice hace algunos años pero con java:
+  https://www.youtube.com/watch?v=iPhISsLnAgY
+  
