@@ -1,9 +1,7 @@
 package com.example.myfireflydigital.ui.admincitas
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.room.util.query
 import com.example.myfireflydigital.domain.exceptions.toUiText
 import com.example.myfireflydigital.domain.model.AppMessage
 import com.example.myfireflydigital.domain.model.Cita
@@ -47,6 +45,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Collections.emptyList
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
 
 @HiltViewModel
 class AdminCitasViewModel @Inject constructor(
@@ -74,6 +73,7 @@ class AdminCitasViewModel @Inject constructor(
                     result.onSuccess { listPredictions ->
                         emit(listPredictions)
                     }.onFailure { error ->
+                        if (error is CancellationException) return@onFailure
                         val mensaje = AppMessage.Error(error.toUiText())
                         _uiEffect.trySend(CitasUiEffect.ShowSnackbar(mensaje))
                         emit(emptyList())
@@ -122,7 +122,6 @@ class AdminCitasViewModel @Inject constructor(
             }
             is AdminCitasEvent.OnFormNew -> _uiState.update { it.copy(citaSelectEnEdicion = event.cita) }
             AdminCitasEvent.OnCloseSheet -> _uiState.update {
-                Log.d("AdminCitasViewModel", "onEvent: ${it.citaSelectEnEdicion} - ${it.selectedLocation}")
                 it.copy(isSheetVisible = false)
             }
 
@@ -158,10 +157,8 @@ class AdminCitasViewModel @Inject constructor(
     }
 
     private fun getCitasById(id: Int) {
-        Log.d("AdminCitasViewModel", "getCitasById: $id")
         viewModelScope.launch {
             getCitaByIdUseCase(id).onSuccess { cita ->
-                Log.d("AdminCitasViewModel", "cita: $cita")
                 _uiState.update { it.copy(citaSelectEnEdicion = cita) }
                 _uiState.update { it.copy(isSheetVisible = true) }
             }.onFailure { error ->
@@ -269,7 +266,6 @@ class AdminCitasViewModel @Inject constructor(
         //REVERSE GEOCODING EN BACKGROUND- SHEET YA VISIBLE
         reverseGeocodeJob = viewModelScope.launch {
             reverseGeocoding(lat, lng).onSuccess { address ->
-                Log.d("AdminCitasViewModel", "onMarketerMoved direccion nueva: $address")
                 _addressQuery.value = ""
                 _uiState.update {
                     it.copy(
@@ -287,7 +283,6 @@ class AdminCitasViewModel @Inject constructor(
 
     /*selectedLocation?: si nunca uso el autocomplete, entonces alli puede ser null*/
     private fun onMarkerMoved(lat: Double, lng: Double) {
-        Log.d("AdminCitasViewModel", "onMarketerMoved: $lat, $lng")
         _uiState.update {
             val updatePlace =
                 it.selectedLocation?.copy(latitud = lat, longitud = lng) ?: PlaceLocation(
@@ -308,7 +303,6 @@ class AdminCitasViewModel @Inject constructor(
             reverseGeocoding(lat, lng).onSuccess { address ->
 
                 _uiState.update {
-                    Log.d("AdminCitasViewModel", "onMarketerMoved direccion nueva: address: $address - $it")
                     it.copy(
                         addressQuery = address,
                         selectedLocation = it.selectedLocation?.copy(address = address),
@@ -329,7 +323,6 @@ class AdminCitasViewModel @Inject constructor(
     private fun fetchCurrentLocationForMap(){
         viewModelScope.launch {
             getCurrentLocationUseCase().onSuccess { latLong ->
-                Log.d("AdminCitasViewModel", "fetchCurrentLocationForMap onSuccess: ${latLong}")
                 if (_uiState.value.selectedLocation == null){
                     _uiState.update { it.copy(selectedLocation = PlaceLocation(
                         latitud = latLong.latitude,
@@ -339,7 +332,6 @@ class AdminCitasViewModel @Inject constructor(
                 }
             }.onFailure {
                 _uiEffect.send( CitasUiEffect.ShowSnackbar(AppMessage.Error(it.toUiText())))
-                Log.d("AdminCitasViewModel", "fetchCurrentLocationForMap onFailure: ${it.message}")
             }
         }
     }

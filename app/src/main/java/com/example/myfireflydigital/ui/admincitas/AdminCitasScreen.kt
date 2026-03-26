@@ -1,6 +1,5 @@
 package com.example.myfireflydigital.ui.admincitas
 
-import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -118,7 +117,6 @@ fun AdminCitasScreen(
                 sheetState = sheetState,
                 dragHandle = null
             ) {
-                Log.d("AdminCitasScreen", "AdminCitasScreen: ${uiState.citaSelectEnEdicion} - ModalBottomSheet- ${uiState.selectedLocation} - addrees: ${uiState.addressQuery}")
                     AddCitasSheet(
                         onFormNewCita = {citaNueva -> adminCitasViewModel.onEvent(AdminCitasEvent.OnFormNew(citaNueva))},
                         onCitaSelect = uiState.citaSelectEnEdicion,// null:crear, cita: editar
@@ -156,7 +154,6 @@ fun AdminCitasScreen(
                 onPredictionSelected = { adminCitasViewModel.onEvent(AdminCitasEvent.OnPredictionSelected(it)) },
                 onMapMarkerMoved = { lat, long -> adminCitasViewModel.onEvent(AdminCitasEvent.OnMapMarkerMoved(lat, long)) }
             )
-            Log.d("AdminCitasScreen", "AdminCitasScreen: ${uiState.citaSelectEnEdicion} - ${uiState.selectedLocation} - addrees: ${uiState.addressQuery}")
         }
         SnackbarHost(snackbarHosState) { data ->
             Snackbar(

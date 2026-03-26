@@ -27,6 +27,7 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.coroutines.resume
 
 @Singleton
@@ -55,7 +56,10 @@ class PlacesRepositoryImpl @Inject constructor(
                     fullText = prediction.getFullText(null).toString()
                 )
             }
-        }.recoverCatching { throw PlaceServiceException("${it.message}") }
+        }.recoverCatching { throwable ->
+            if (throwable is CancellationException) throw throwable
+            throw PlaceServiceException("${throwable.message}")
+        }
     }
 
     override suspend fun getPlaceDetails(placeId: String): Result<PlaceLocation> {
