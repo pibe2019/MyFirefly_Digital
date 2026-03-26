@@ -12,6 +12,11 @@ app de geolocalizacion, autocomplete de direcciones, ubicacion, rutas
 - DAGGER HILT: ESTA configurado, aunque falto la implementacion de dibujar rutas
 - ROOM.
 - LA APP ESTA IMPLEMENTADA DE FORMA REACTIVA CON estateFlot.
+- NAVIGATION 3: para la navegacion entre pantallas
+ - RETROFIT 3: pensado para ser utilizado en lo de rutas
+ - COURUTINAS
+ - permisos en tiempo de ejecucion
+ - - manejo de estados
 
   me falto terminar la parte de rutas entre otras cosas pero es algo que ya realice hace algunos años pero con java:
   https://www.youtube.com/watch?v=iPhISsLnAgY
