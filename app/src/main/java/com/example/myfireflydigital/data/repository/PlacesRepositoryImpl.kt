@@ -79,8 +79,9 @@ class PlacesRepositoryImpl @Inject constructor(
                 longitud = place.location?.longitude ?: 0.0,
                 address = place.formattedAddress ?: ""
             )
-        }.recoverCatching {
-            throw PlaceServiceException("${it.message}")
+        }.recoverCatching { throwable ->
+            if (throwable is CancellationException) throw throwable
+            throw PlaceServiceException("${throwable.message}")
         }
     }
 
@@ -111,7 +112,10 @@ class PlacesRepositoryImpl @Inject constructor(
                     }
                 }
             }
-        }.recoverCatching { throw GeocoderException("${it.message}") }
+        }.recoverCatching { throwable ->
+            if (throwable is CancellationException) throw throwable
+            throw GeocoderException("${throwable.message}")
+        }
     }
 
     /* OBTENEMOS LA UBICACION - Manejamos el riesgo con SecurityException en recoverCatching */
@@ -121,6 +125,7 @@ class PlacesRepositoryImpl @Inject constructor(
             locationProvider.fetchCurrentLocation()
         }.recoverCatching {
             when(it){
+                is CancellationException -> throw it
                 is SecurityException -> throw GeoLocationPermissionDeniedException()
                 is GeoLocationDisableException -> throw GeoLocationDisableException()
                 is GeoLocationUnknownException -> throw GeoLocationUnknownException()

@@ -96,6 +96,7 @@ dependencies {
     implementation(libs.logging.interceptor)
     //DATASTORE
     implementation (libs.datastore.preferences)
+    /**********************************************************/
     //HUBICACION, GEOCODING
     implementation(libs.play.services.location)
     //GOOGLE MAPS - con JetpackCompose(mapa en Compose)
@@ -107,11 +108,10 @@ dependencies {
         exclude(group = "androidx.vectordrawable", module = "vectordrawable-animated")
     }
     //Accompanist Permissions - manera profesional de pedir permisos
-    implementation("com.google.accompanist:accompanist-permissions:0.37.3")
+    implementation(libs.accompanist.permissions)
 
-
-    // UTILITY LIBRARY - Para polilíneas, clustering, etc. OPCIONALLLLLL
-    //implementation("com.google.maps.android:maps-utils-ktx:5.1.0")
+    // UTILITY LIBRARY - Para decodificar polilíneas, clustering, etc.-
+    implementation("com.google.maps.android:maps-utils-ktx:6.0.1")
     // Coroutines play-services (.await() sobre Task<T>)
     //implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
 

@@ -19,7 +19,7 @@ import com.example.myfireflydigital.domain.util.UiText
 import com.example.myfireflydigital.ui.core.util.cleanInput
 import com.example.myfireflydigital.ui.modeloui.AdminCitasEvent
 import com.example.myfireflydigital.ui.modeloui.AdminCitasUiState
-import com.example.myfireflydigital.ui.modeloui.CitasUiEffect
+import com.example.myfireflydigital.ui.modeloui.UiEffect
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -30,14 +30,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
@@ -75,15 +70,14 @@ class AdminCitasViewModel @Inject constructor(
                     }.onFailure { error ->
                         if (error is CancellationException) return@onFailure
                         val mensaje = AppMessage.Error(error.toUiText())
-                        _uiEffect.trySend(CitasUiEffect.ShowSnackbar(mensaje))
+                        _uiEffect.trySend(UiEffect.ShowSnackbar(mensaje))
                         emit(emptyList())
                     }
                 }
             }
         }
-        //.map { result -> result.getOrElse { emptyList() } }//desembuelbe el Result<List<Prediction>> para -> List<Prediction> y lo pasa al "combine"
         .onStart { emit(emptyList()) }
-    private val _uiEffect = Channel<CitasUiEffect>()
+    private val _uiEffect = Channel<UiEffect>()
     val uiEffect = _uiEffect.receiveAsFlow()
     private val _uiState = MutableStateFlow(AdminCitasUiState())
     val uiState: StateFlow<AdminCitasUiState> = combine(
@@ -163,7 +157,7 @@ class AdminCitasViewModel @Inject constructor(
                 _uiState.update { it.copy(isSheetVisible = true) }
             }.onFailure { error ->
                 val mensaje = AppMessage.Error(error.toUiText())
-                _uiEffect.send(CitasUiEffect.ShowSnackbar(mensaje))
+                _uiEffect.send(UiEffect.ShowSnackbar(mensaje))
             }
         }
     }
@@ -182,7 +176,7 @@ class AdminCitasViewModel @Inject constructor(
                     addressQuery = cita?.direccion ?: "",
                     selectedLocation = updateSelectLocation) }
             }.onFailure { error ->
-                _uiEffect.send(CitasUiEffect.ShowSnackbar(AppMessage.Error(error.toUiText())))
+                _uiEffect.send(UiEffect.ShowSnackbar(AppMessage.Error(error.toUiText())))
                 _uiState.update { it.copy(error= AppMessage.Error(error.toUiText())) }
             }
         }
@@ -195,7 +189,7 @@ class AdminCitasViewModel @Inject constructor(
                 _uiState.update { it.copy(isSheetVisible = false, citaSelectEnEdicion = null, addressQuery = "", selectedLocation = null) }
                 val mensaje = AppMessage.Success(UiText.DynamicString("Cita guardada"))
                 //_uiEffect.send(CitasUiEffect.DismissSheet)
-                _uiEffect.send(CitasUiEffect.ShowSnackbar(mensaje))
+                _uiEffect.send(UiEffect.ShowSnackbar(mensaje))
             }.onFailure { error ->
                 _uiState.update { it.copy(error = AppMessage.Error(error.toUiText())) }
                 // Manejar error
@@ -207,10 +201,10 @@ class AdminCitasViewModel @Inject constructor(
         viewModelScope.launch {
             deleteCitaUseCase(cita).onSuccess {
                 val mensaje = AppMessage.Success(UiText.DynamicString("Cita eliminada"))
-                _uiEffect.send(CitasUiEffect.ShowSnackbar(mensaje))
+                _uiEffect.send(UiEffect.ShowSnackbar(mensaje))
             }.onFailure { error ->
                 val mensaje = AppMessage.Error(error.toUiText())
-                _uiEffect.send(CitasUiEffect.ShowSnackbar(mensaje))
+                _uiEffect.send(UiEffect.ShowSnackbar(mensaje))
             }
         }
     }
@@ -241,7 +235,7 @@ class AdminCitasViewModel @Inject constructor(
             }.onFailure { error ->
                 val mensaje = AppMessage.Error(error.toUiText())
                 _uiState.update { it.copy(isLoadingSearchingPlace = false) }
-                _uiEffect.send(CitasUiEffect.ShowSnackbar(mensaje))
+                _uiEffect.send(UiEffect.ShowSnackbar(mensaje))
             }
         }
     }
@@ -331,7 +325,7 @@ class AdminCitasViewModel @Inject constructor(
                     ))}
                 }
             }.onFailure {
-                _uiEffect.send( CitasUiEffect.ShowSnackbar(AppMessage.Error(it.toUiText())))
+                _uiEffect.send( UiEffect.ShowSnackbar(AppMessage.Error(it.toUiText())))
             }
         }
     }

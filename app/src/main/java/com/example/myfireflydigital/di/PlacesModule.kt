@@ -3,13 +3,10 @@ package com.example.myfireflydigital.di
 import android.content.Context
 import android.location.Geocoder
 import com.example.myfireflydigital.BuildConfig
-import com.example.myfireflydigital.data.repository.PlacesRepositoryImpl
-import com.example.myfireflydigital.domain.repository.PlacesRepository
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.net.PlacesClient
-import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -44,13 +41,4 @@ object PlacesModule {
     fun providePlacesRepository(placesClient: PlacesClient) : PlacesRepository{
         return PlacesRepositoryImpl(placesClient)
     }*/
-}
-
-@Module
-@InstallIn(SingletonComponent::class)
-abstract class PlacesBindModule{
-
-    @Singleton
-    @Binds
-    abstract fun bindPlacesRepository(impl: PlacesRepositoryImpl) : PlacesRepository
 }

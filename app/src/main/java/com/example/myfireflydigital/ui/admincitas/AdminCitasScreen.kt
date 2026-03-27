@@ -50,7 +50,7 @@ import com.example.myfireflydigital.ui.core.componentes.AddCitasSheet
 import com.example.myfireflydigital.ui.core.componentes.Floating
 import com.example.myfireflydigital.ui.core.componentes.MapPickerScreen
 import com.example.myfireflydigital.ui.modeloui.AdminCitasEvent
-import com.example.myfireflydigital.ui.modeloui.CitasUiEffect
+import com.example.myfireflydigital.ui.modeloui.UiEffect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -68,7 +68,7 @@ fun AdminCitasScreen(
     LaunchedEffect(Unit) {
         adminCitasViewModel.uiEffect.collectLatest { effect ->
             when (effect) {
-                is CitasUiEffect.ShowSnackbar -> {
+                is UiEffect.ShowSnackbar -> {
                     launch {//corrutina independiente
                         snackbarHosState.showSnackbar(
                             message = effect.message.messageApp?.asString(context)

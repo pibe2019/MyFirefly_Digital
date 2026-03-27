@@ -13,7 +13,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class CitaRepositoryImpl (private val citaDaoApi: CitaDao) : CitaRepository {
+class CitaRepositoryImpl @Inject constructor(private val citaDaoApi: CitaDao) : CitaRepository {
 
     override fun getCitasObserve(): Flow<List<Cita>> {
         return citaDaoApi.getCitasObserve().map { citaEntities ->

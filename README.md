@@ -18,7 +18,8 @@ app de geolocalizacion, autocomplete de direcciones, ubicacion, rutas
  - RETROFIT 3: pensado para ser utilizado en lo de rutas
  - TAREAS EN SEGUNDO PLANO: COURUTINAS
  - permisos en tiempo de ejecucion
- - api de permisos : Accompanist Permissions
+ - Api de permisos : Accompanist Permissions
+ - Api de Routes: nueva api de rutas que esta en uso desde el 2023(ES LO NUEVO)
  - control de errores o fallos personalizados
  - manejo de estados
 

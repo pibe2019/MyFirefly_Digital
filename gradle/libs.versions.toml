@@ -24,6 +24,7 @@ datastorePreferences = "1.2.1"
 mapsCompose = "8.2.2"
 playServicesMaps = "20.0.0"
 playServicesLocation = "21.3.0"
+accompanistPermissions = "0.37.3"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -64,6 +65,8 @@ datastore-preferences = { module = "androidx.datastore:datastore-preferences", v
 maps-compose = { module = "com.google.maps.android:maps-compose", version.ref = "mapsCompose" }
 play-services-maps = { module = "com.google.android.gms:play-services-maps", version.ref = "playServicesMaps" }
 play-services-location = { module = "com.google.android.gms:play-services-location", version.ref = "playServicesLocation" }
+
+accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions", version.ref = "accompanistPermissions" }
 
 
 [bundles]
