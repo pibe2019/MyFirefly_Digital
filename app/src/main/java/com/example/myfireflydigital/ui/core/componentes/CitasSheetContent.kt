@@ -41,7 +41,8 @@ fun CitasSheetContent(
     citas: List<Cita>,
     isLoadingCitas: Boolean,
     onClickCita: (Cita) -> Unit,
-    citaSelecId: Int?
+    citaSelecId: Int?,
+    onDetalleClick: (Int) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxHeight(0.5f)) {
         Text(
@@ -63,7 +64,8 @@ fun CitasSheetContent(
                     CitaCardItem(
                         cita = cita,
                         onClick = { onClickCita(cita) },
-                        isSelected = cita.id == citaSelecId
+                        isSelected = cita.id == citaSelecId,
+                        onDetalleClick = {onDetalleClick(cita.id)}
                     )
                 }
             }
@@ -73,7 +75,7 @@ fun CitasSheetContent(
 }
 
 @Composable
-fun CitaCardItem(cita: Cita, onClick: () -> Unit, isSelected: Boolean) {
+fun CitaCardItem(cita: Cita, onClick: () -> Unit, isSelected: Boolean, onDetalleClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -130,7 +132,7 @@ fun CitaCardItem(cita: Cita, onClick: () -> Unit, isSelected: Boolean) {
                         )
                     }
                     Spacer(modifier = Modifier.weight(1f))
-                    TextButton(onClick = {}, modifier = Modifier) {
+                    TextButton(onClick = onDetalleClick, modifier = Modifier) {
                         Text(
                             text = "Detalle",
                             style = MaterialTheme.typography.titleMedium

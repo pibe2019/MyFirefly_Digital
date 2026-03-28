@@ -15,13 +15,13 @@ sealed class RoutesScreens(var title: String, @Contextual var icon: ImageVector?
     @Serializable
     data object  AdminCitasScreen: RoutesScreens("Admin Citas", null)
      @Serializable
-     data object DetalleCitasSreen: RoutesScreens("Cita Detalle", null)
+     data class DetalleCitasSreen(val id: Int): RoutesScreens("Cita Detalle", null)
 
     companion object{
         val menuItems = listOf(
             MapCitasScreen,
             AdminCitasScreen,
-            DetalleCitasSreen
+            //DetalleCitasSreen
         )
     }
 }

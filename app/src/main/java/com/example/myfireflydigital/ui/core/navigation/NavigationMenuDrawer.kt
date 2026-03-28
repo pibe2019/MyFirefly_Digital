@@ -18,8 +18,9 @@ fun NavigationMenuDrawer(modifier: Modifier, backStack: NavBackStack<NavKey>,) {
         backStack = backStack,
         onBack = {backStack.removeLastOrNull()},
         entryProvider = entryProvider {
-            entry<RoutesScreens.MapCitasScreen> { MapCitasScreen() }
-            entry <RoutesScreens.DetalleCitasSreen>{ DetalleCitaScreen() }
+            entry<RoutesScreens.MapCitasScreen> { MapCitasScreen(onNavigateToDetalleCita = {idCita -> backStack.add(RoutesScreens.DetalleCitasSreen(idCita)) }) }
+            entry <RoutesScreens.DetalleCitasSreen>{ key ->
+                DetalleCitaScreen(idCita= key.id) }
             entry <RoutesScreens.AdminCitasScreen>{ AdminCitasScreen() }
         }
     )

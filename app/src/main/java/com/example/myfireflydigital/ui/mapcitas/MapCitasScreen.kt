@@ -57,7 +57,8 @@ import kotlinx.coroutines.flow.collectLatest
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun MapCitasScreen(
-    mapCitasViewModel: MapCitasViewModel = hiltViewModel()
+    mapCitasViewModel: MapCitasViewModel = hiltViewModel(),
+    onNavigateToDetalleCita: (Int) -> Unit
 ) {
     val uiMapState by mapCitasViewModel.uiMapState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -97,7 +98,7 @@ fun MapCitasScreen(
         snackbarHost = {SnackbarHost(snackbarHostState)},
         sheetContent = {
             CitasSheetContent(uiMapState.citas, uiMapState.isLoadingCitas, onClickCita = {cita -> mapCitasViewModel.OnEvent(MapCitasEvent.OnSelectCita(cita))
-            }, citaSelecId = uiMapState.citaSelecId)
+            }, citaSelecId = uiMapState.citaSelecId,onDetalleClick = onNavigateToDetalleCita)
         }
     ){ paddingValues ->
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
