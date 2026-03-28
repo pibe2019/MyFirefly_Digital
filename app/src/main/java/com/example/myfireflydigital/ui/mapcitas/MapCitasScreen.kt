@@ -30,8 +30,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.myfireflydigital.domain.model.Cita
 import com.example.myfireflydigital.ui.core.componentes.CitasSheetContent
 import com.example.myfireflydigital.ui.modeloui.MapCitasEvent
+import com.example.myfireflydigital.ui.modeloui.RouteInfo
 import com.example.myfireflydigital.ui.modeloui.UiEffect
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionState
@@ -41,12 +43,14 @@ import com.google.accompanist.permissions.shouldShowRationale
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.Marker
 import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
+import com.google.maps.android.compose.Polyline
 import com.google.maps.android.compose.rememberCameraPositionState
 import kotlinx.coroutines.flow.collectLatest
 
@@ -102,7 +106,10 @@ fun MapCitasScreen(
                     cameraPositionState = cameraPositionState,
                     properties = uiMapState.properties,
                     userLocation = uiMapState.userLocation,
-                    onMapLoaded = {mapCitasViewModel.OnEvent(MapCitasEvent.OnMapLoaded)}
+                    onMapLoaded = {mapCitasViewModel.OnEvent(MapCitasEvent.OnMapLoaded)},
+                    citas = uiMapState.citas,
+                    routeInfo = uiMapState.routeInfo,
+                    citaSelecId = uiMapState.citaSelecId
                 )
             }else {
                 Box(Modifier.fillMaxSize().background(Color.DarkGray))
@@ -124,7 +131,10 @@ fun MapsCitas(
     cameraPositionState: CameraPositionState,
     properties: MapProperties,
     userLocation: LatLng?,
-    onMapLoaded: ()->Unit
+    onMapLoaded: ()->Unit,
+    citas: List<Cita> = emptyList(),
+    routeInfo: RouteInfo? = null,
+    citaSelecId: Int? = null
 ) {
     GoogleMap(
         modifier = modifier.fillMaxSize(),
@@ -133,11 +143,29 @@ fun MapsCitas(
         uiSettings = MapUiSettings(myLocationButtonEnabled = true),
         onMapLoaded = onMapLoaded
     ) {
+        //MARCADORES DE TODAS LAS CITAS Y SE RESALTA EL MARKER DE LA CITA SEECCIONADA
+        citas.forEach { cita ->
+            Marker(
+                state = MarkerState(position = LatLng(cita.latitud, cita.longitud)),
+                title= cita.titulo,
+                snippet = cita.direccion,
+                alpha = if (citaSelecId == null || citaSelecId == cita.id) 1f else 0.5f
+            )
+        }
         userLocation?.let {
             Marker(
                 state = MarkerState(position = it),
                 title = "Mi ubicación",
                 snippet = "peru"
+            )
+        }
+
+        if (routeInfo != null){
+            Polyline(
+                points = routeInfo.routePoints,
+                color = Color(0xFF1A73E8),//Azul de Google
+                width = 10f,
+                geodesic = true
             )
         }
 
