@@ -77,7 +77,7 @@ class AdminCitasViewModel @Inject constructor(
             }
         }
         .onStart { emit(emptyList()) }
-    private val _uiEffect = Channel<UiEffect>()
+    private val _uiEffect = Channel<UiEffect>(Channel.BUFFERED)
     val uiEffect = _uiEffect.receiveAsFlow()
     private val _uiState = MutableStateFlow(AdminCitasUiState())
     val uiState: StateFlow<AdminCitasUiState> = combine(

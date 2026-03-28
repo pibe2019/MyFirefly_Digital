@@ -26,6 +26,6 @@ fun NavBackStack<NavKey>.replaceLast(screen: NavKey) =
 fun EstadoCita.toBadgeConfig(): Pair<String, Color> = when(this){
     EstadoCita.VISITADO ->  "VISITADO" to Color(0xFF4CAF50)
     EstadoCita.EN_RUTA -> "EN RUTA" to Color(0xFF4FC3F7)
-    EstadoCita.NO_VISITADO -> "NO VISITADO" to Color(0xFFF44336)
+    EstadoCita.NO_VISITADO -> "NO VISITADO" to Color(0xffd51e34)
     EstadoCita.CANCELADO -> "CANCELADO" to Color.Gray
 }

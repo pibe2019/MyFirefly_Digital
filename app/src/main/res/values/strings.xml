@@ -1,18 +1,19 @@
 <resources>
     <string name="app_name">My Firefly Digital</string>
     <!-- DATABASE -->
-    <string name="error_database">Error en la DB: (%1$d)</string>
+    <string name="error_database">Error en la DB: (%1$s)</string>
     <!-- SERVICIOS EXTERNOS -->
-    <string name="error_map_service">Error al interactuar con el servicio de mapas: (%1$d)</string>
+    <string name="error_map_service">Error al interactuar con el servicio de mapas: (%1$s)</string>
     <string name="error_no_result">No se encontraron resultados</string>
     <string name="error_geocoder_not_available">Geocoder no disponible en este dispositivo</string>
     <!-- UBICACION -->
     <string name="error_geo_location_disable">GPS desactivado</string>
     <string name="error_geo_location_permission_denied">Permiso de ubicacion denegada</string>
+    <string name="error_geo_location">Falta tu ubicacion</string>
     <!-- RUTAS -->
     <string name="error_route_not_found">No se encontró una ruta disponible</string>
-    <string name="error_route_service">Error al obtener la ruta: (%1$d)</string>
-    <!-- Unknown -->
-    <string name="error_unknown">Error inesperado (%1$d)</string>
+    <string name="error_route_service">Error al obtener la ruta: (%1$s)</string>
+    <!-- Unknown s(string) ,d(int)-->
+    <string name="error_unknown">Error inesperado (%1$s)</string>
 
 </resources>

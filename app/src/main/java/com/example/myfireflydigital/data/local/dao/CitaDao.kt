@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface CitaDao {
 
-    @Query("SELECT * FROM Cita ORDER BY fecha DESC")
+    @Query("SELECT * FROM Cita ORDER BY id DESC")
     fun getCitasObserve(): Flow<List<CitaEntity>>
 
     @Query("SELECT * FROM Cita WHERE id = :id")

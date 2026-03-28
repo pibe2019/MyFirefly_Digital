@@ -84,7 +84,7 @@ dependencies {
     implementation(libs.androidx.hilt.navigation.compose)
     //para la serializacion en la navegacion
     implementation(libs.kotlinx.serialization.json)
-    //NAVIGATION VERSON 3
+    //NAVIGATION VERSION 3
     implementation(libs.bundles.navigation3)
     //ROOM
     implementation (libs.androidx.room.runtime)

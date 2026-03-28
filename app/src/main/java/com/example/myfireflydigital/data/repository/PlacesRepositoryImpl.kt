@@ -38,8 +38,8 @@ class PlacesRepositoryImpl @Inject constructor(
     private val locationProvider: LocationProvider
 ) : PlacesRepository {
     private var sesionToken: AutocompleteSessionToken? = null
-    override suspend fun getPlaceSearchAutoCompletePredictions(query: String): Result<List<PlacePrediction>> {
-        return runCatching {
+    override suspend fun getPlaceSearchAutoCompletePredictions(query: String): Result<List<PlacePrediction>> = withContext(ioDispatcher) {
+        runCatching {
             if (sesionToken == null) sesionToken = AutocompleteSessionToken.newInstance()
             val request =
                 FindAutocompletePredictionsRequest.builder()//relacionado al costo de la peticion $
@@ -62,8 +62,8 @@ class PlacesRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getPlaceDetails(placeId: String): Result<PlaceLocation> {
-        return runCatching {
+    override suspend fun getPlaceDetails(placeId: String): Result<PlaceLocation> = withContext(ioDispatcher)  {
+        runCatching {
             sesionToken = null
             val fields = listOf(
                 Place.Field.LOCATION,
@@ -89,32 +89,35 @@ class PlacesRepositoryImpl @Inject constructor(
         lat: Double,
         lng: Double
     ): Result<String> {
-        if (!Geocoder.isPresent()) return Result.failure(GeocoderNotAvailableException())
-        return runCatching {
-            withContext(ioDispatcher) {
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-                    @Suppress("DEPRECATION")
-                    val addresses = geocoder.getFromLocation(lat, lng, 1)
-                    addresses?.firstOrNull()?.getAddressLine(0) ?: "$lat, $lng"
-                } else {
-                    suspendCancellableCoroutine { continuation ->
-                        geocoder.getFromLocation(lat, lng, 1, object : Geocoder.GeocodeListener {
-                            override fun onGeocode(addresses: List<Address?>) {
-                                val address =
-                                    addresses.firstOrNull()?.getAddressLine(0) ?: "$lat, $lng"
-                                continuation.resume(address)
-                            }
+        return withContext(ioDispatcher) {
+            if (!Geocoder.isPresent()) Result.failure(GeocoderNotAvailableException())
+            else{
+                runCatching {
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                        @Suppress("DEPRECATION")
+                        val addresses = geocoder.getFromLocation(lat, lng, 1)
+                        addresses?.firstOrNull()?.getAddressLine(0) ?: "$lat, $lng"
+                    } else {
+                        suspendCancellableCoroutine { continuation ->
+                            geocoder.getFromLocation(lat, lng, 1, object : Geocoder.GeocodeListener {
+                                override fun onGeocode(addresses: List<Address?>) {
+                                    val address =
+                                        addresses.firstOrNull()?.getAddressLine(0) ?: "$lat, $lng"
+                                    continuation.resume(address)
+                                }
 
-                            override fun onError(errorMessage: String?) {
-                                continuation.resume("$lat, $lng")
-                            }
-                        })
+                                override fun onError(errorMessage: String?) {
+                                    continuation.resume("$lat, $lng")
+                                }
+                            })
+                        }
                     }
+                }.recoverCatching { throwable ->
+                    if (throwable is CancellationException) throw throwable
+                    throw GeocoderException("${throwable.message}")
                 }
             }
-        }.recoverCatching { throwable ->
-            if (throwable is CancellationException) throw throwable
-            throw GeocoderException("${throwable.message}")
+
         }
     }
 
@@ -124,8 +127,8 @@ class PlacesRepositoryImpl @Inject constructor(
         return runCatching {
             locationProvider.fetchCurrentLocation()
         }.recoverCatching {
+            if ( it is CancellationException) throw it
             when(it){
-                is CancellationException -> throw it
                 is SecurityException -> throw GeoLocationPermissionDeniedException()
                 is GeoLocationDisableException -> throw GeoLocationDisableException()
                 is GeoLocationUnknownException -> throw GeoLocationUnknownException()

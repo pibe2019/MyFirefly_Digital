@@ -9,6 +9,7 @@ import com.example.myfireflydigital.BuildConfig
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.time.Duration
@@ -34,6 +35,9 @@ object NetworkModule {
                 val request = chain.request().newBuilder().addHeader("X-Goog-Api-Key", BuildConfig.MAPS_API_KEY).build()
                 chain.proceed(request)
             }
+            .addInterceptor(HttpLoggingInterceptor().apply {
+                level = HttpLoggingInterceptor.Level.BODY
+            })
             .build()
     }
 
