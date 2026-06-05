@@ -11,6 +11,7 @@ data class MapUiState (
     val isLoadingCitas: Boolean = false,
     val isLoadingMap: Boolean = false,//map sta cargado?
     val properties: MapProperties = MapProperties(isMyLocationEnabled = false, mapType = MapType.NORMAL),
+    val locationUpdateTick: Int = 0,
     //val uiSettings: MapUiSettings = MapUiSettings(zoomControlsEnabled = false),
     //RUTA
     val citaSelecId: Int? = null, //ruta destino

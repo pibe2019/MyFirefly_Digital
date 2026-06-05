@@ -1,7 +1,9 @@
 package com.example.myfireflydigital.ui.core.componentes
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -9,18 +11,20 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import com.example.myfireflydigital.domain.model.Cita
 import com.example.myfireflydigital.domain.model.PlaceLocation
 import com.example.myfireflydigital.ui.core.util.cleanInput
+import com.example.myfireflydigital.ui.core.util.toBadgeConfig
 
 @Composable
 fun AddCitasSheet(
@@ -44,9 +49,10 @@ fun AddCitasSheet(
     onCancelar: () -> Unit
 ) {
     val cita = onCitaSelect ?: return
-    val esEdicion = onCitaSelect.titulo.isNotEmpty()
-
-    //var titulo by rememberSaveable() { mutableStateOf(onCitaSelect?.titulo ?: "") }
+    val esEdicion = remember { onCitaSelect.id != 0 }
+    var showDatePicker by rememberSaveable { mutableStateOf(false) }
+    var showTimePicker by rememberSaveable { mutableStateOf(false) }
+    val (estadoLabel, estadoColor) = cita.estado.toBadgeConfig()
 
     val latitud = selectedLocation?.latitud?.toString() ?: cita.latitud.takeIf { it != 0.0 }?.toString() ?: ""
     val longitud = selectedLocation?.longitud?.toString() ?: cita.longitud.takeIf { it != 0.0 }?.toString() ?: ""
@@ -85,6 +91,9 @@ fun AddCitasSheet(
             modifier = Modifier.fillMaxWidth(),
             singleLine = true
         )
+        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd){
+            EstadoCitaBadge(estadoLabel, estadoColor, onClickEstado = { onFormNewCita(cita.copy(estado = it)) })
+        }
         Text(text = "Ubicacion")
         Surface(
             modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
@@ -128,28 +137,36 @@ fun AddCitasSheet(
         }
 
         //FECHA-HORA
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             OutlinedTextField(
-                value = cita.fecha,
-                onValueChange = { onFormNewCita(cita.copy(fecha=it)) },
+                modifier = Modifier.weight(1f, fill = false).wrapContentWidth(),
+                value =cita.fecha ,
+                onValueChange = { },
                 label = { Text("Fecha") },
+                readOnly = true,
                 placeholder = { Text("DD/MM/AAAA") },
-                modifier = Modifier.weight(1f),
-                singleLine = true
+                singleLine = true,
+                trailingIcon = {
+                    IconButton(onClick = { showDatePicker = true }) {
+                        Icon(Icons.Default.DateRange, contentDescription = "Fecha")
+                    }
+                }
             )
             OutlinedTextField(
+                modifier = Modifier.weight(1f, fill = false).wrapContentWidth(),
                 value = cita.hora,
-                onValueChange = { onFormNewCita(cita.copy(hora = it)) },
+                onValueChange = {},
+                readOnly = true,
                 label = { Text("Hora") },
-                placeholder = { Text("HH:MM") },
-                modifier = Modifier.weight(1f),
-                singleLine = true
+                placeholder = { Text("24H - 12H") },
+                singleLine = true,
+                trailingIcon = {
+                    IconButton(onClick = { showTimePicker = true}) {
+                        Icon(Icons.Default.AccessTime, contentDescription = "Seleccionar hora")
+                    }
+                }
             )
         }
-
         //BOTONES
         Row(
             modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
@@ -177,4 +194,6 @@ fun AddCitasSheet(
             }
         }
     }
+    if (showDatePicker)  DatePickerField(cita.fecha, onDateSelected = { onFormNewCita(cita.copy(fecha=it))  }, onDismiss = {showDatePicker=false})
+    if (showTimePicker) TimePickerField(hora = cita.hora, onTimeSelected = { onFormNewCita(cita.copy(hora=it)) }, onDismiss = { showTimePicker = false})
 }

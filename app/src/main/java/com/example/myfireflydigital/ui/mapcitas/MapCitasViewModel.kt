@@ -1,15 +1,19 @@
 package com.example.myfireflydigital.ui.mapcitas
 
 import android.util.Log
+import androidx.activity.result.IntentSenderRequest
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myfireflydigital.R
+import com.example.myfireflydigital.domain.exceptions.GeoLocationResolvableException
 import com.example.myfireflydigital.domain.exceptions.toUiText
 import com.example.myfireflydigital.domain.model.AppMessage
 import com.example.myfireflydigital.domain.model.Cita
+import com.example.myfireflydigital.domain.model.result.EstadoCita
 import com.example.myfireflydigital.domain.usecase.GetCitasObserverUseCase
 import com.example.myfireflydigital.domain.usecase.GetCurrentLocationUseCase
 import com.example.myfireflydigital.domain.usecase.GetRouteUseCase
+import com.example.myfireflydigital.domain.usecase.UpsertCitaUseCase
 import com.example.myfireflydigital.domain.util.UiText
 import com.example.myfireflydigital.ui.modeloui.AdminCitasUiState
 import com.example.myfireflydigital.ui.modeloui.MapCitasEvent
@@ -19,26 +23,23 @@ import com.example.myfireflydigital.ui.modeloui.UiEffect
 import com.google.android.gms.maps.model.LatLng
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.time.delay
 import javax.inject.Inject
 
 @HiltViewModel
 class MapCitasViewModel @Inject constructor(
     private val getCurrenLocationUseCase: GetCurrentLocationUseCase,
     private val getCitasObserverUseCase: GetCitasObserverUseCase,
-    private val getRouteUseCase: GetRouteUseCase
+    private val getRouteUseCase: GetRouteUseCase,
+    private val upsertCitaUseCase: UpsertCitaUseCase
 ) : ViewModel() {
     private val _uiMapState = MutableStateFlow(MapUiState())
     //val uiMapState : StateFlow<MapUiState> = _uiMapState.asStateFlow()
@@ -53,36 +54,48 @@ class MapCitasViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = MapUiState(isLoadingCitas = true, isLoadingMap = true)
     )
-    private val _effect = Channel<UiEffect>(Channel.BUFFERED)
+    private val _effect = Channel<UiEffect>(Channel.CONFLATED)//SOLO GUARDA EL ULTIMO AVISO
     val effect = _effect.receiveAsFlow()
 
     private var routerJob: Job? = null //DEBOUNCE
 
-    fun OnEvent(event: MapCitasEvent) {
+    fun onEvent(event: MapCitasEvent) {
         when (event) {
             MapCitasEvent.OnMapLoaded -> _uiMapState.update { it.copy(isLoadingMap = false) }
-            MapCitasEvent.OnMyLocation -> OnMyLocation()
+            MapCitasEvent.OnMyLocation -> onMyLocation()
             is MapCitasEvent.OnSelectCita -> onSelectCita(event.cita)
             MapCitasEvent.OnClearRoute -> onClearRoute()
+            is MapCitasEvent.OnCancelarCita -> onCancelarCita(event.citaId)
+            MapCitasEvent.OnMyLocationButtonClick -> onMyLocationButtonClick()
         }
     }
 
-    private fun OnMyLocation() {
+    private fun onMyLocation() {
         viewModelScope.launch {
             //_uiMapState.update { it.copy(isLoading = true) }
             getCurrenLocationUseCase().onSuccess { latLng ->
                 _uiMapState.update {
                     it.copy(
                         userLocation = latLng,
-                        //isLoading = false,
+                        locationUpdateTick = it.locationUpdateTick + 1,
                         properties = it.properties.copy(isMyLocationEnabled = true)
                     )
                 }
             }.onFailure { error ->
-                //_uiMapState.update { it.copy(isLoading = false) }
-                _effect.send(UiEffect.ShowSnackbar(AppMessage.Error(error.toUiText())))
+                when(error){
+                    is GeoLocationResolvableException ->{
+                        _uiMapState.update { it.copy(properties = it.properties.copy(isMyLocationEnabled = true)) }
+                        val request = IntentSenderRequest.Builder(error.intentSender).build()
+                        _effect.send(UiEffect.RequestGpsEnable(request))
+                    }
+                    else -> _effect.send(UiEffect.ShowSnackbar(AppMessage.Error(error.toUiText())))
+                }
             }
         }
+    }
+
+    private fun onMyLocationButtonClick(){
+        onMyLocation()
     }
 
     private fun onSelectCita(cita: Cita) {
@@ -104,10 +117,8 @@ class MapCitasViewModel @Inject constructor(
             }
             getRouteUseCase(userLocation, LatLng(cita.latitud, cita.longitud))
                 .onSuccess { routeInfo ->
-                    Log.d("MapCitasViewModel", "onSelectCita 2: ${routeInfo}")
                     _uiMapState.update { it.copy(isLoadingRouteUbi = false, routeInfo = RouteInfo(routeInfo.points, routeInfo.distance, routeInfo.duration)) }
                 }.onFailure {
-                    Log.d("MapCitasViewModel", "onSelectCita 3: ${it}")
                     _uiMapState.update { it.copy(isLoadingRouteUbi = false, citaSelecId = null) }
                     _effect.send(UiEffect.ShowSnackbar(AppMessage.Error(it.toUiText())))
                 }
@@ -122,6 +133,17 @@ class MapCitasViewModel @Inject constructor(
                 isLoadingRouteUbi = false,
                 routeInfo = null
             )
+        }
+    }
+
+    private fun onCancelarCita(citaId: Int){
+        val cita = uiMapState.value.citas.find { it.id == citaId } ?: return
+        viewModelScope.launch {
+            upsertCitaUseCase(cita.copy(estado = EstadoCita.CANCELADO)).onSuccess {
+                _effect.send(UiEffect.ShowSnackbar(AppMessage.Success(UiText.StringResource(R.string.warning_cita_cancelada))))
+            }.onFailure {
+                _effect.send(UiEffect.ShowSnackbar(AppMessage.Error(it.toUiText())))
+            }
         }
     }
 }

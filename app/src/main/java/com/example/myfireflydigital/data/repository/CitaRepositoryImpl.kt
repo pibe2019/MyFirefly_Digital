@@ -20,13 +20,11 @@ import javax.inject.Singleton
 @Singleton
 class CitaRepositoryImpl @Inject constructor(private val citaDaoApi: CitaDao, @IoDispatcher private val ioDispatcher: CoroutineDispatcher) : CitaRepository {
 
-    override fun getCitasObserve(): Flow<List<Cita>> {
-        return citaDaoApi.getCitasObserve().map { citaEntities ->
+    override fun getCitasObserve(): Flow<List<Cita>> = citaDaoApi.getCitasObserve().map{ citaEntities ->
             citaEntities.map { it.toDomain() }
         }.catch {
             emit(emptyList())
         }.flowOn(ioDispatcher)
-    }
 
     override suspend fun getCitaById(id: Int): Result<Cita?> = withContext(ioDispatcher){
             runCatching {
@@ -40,7 +38,7 @@ class CitaRepositoryImpl @Inject constructor(private val citaDaoApi: CitaDao, @I
     override suspend fun upsertCita(cita: Cita): Result<Boolean> = withContext(ioDispatcher){
             runCatching {
                 val result = citaDaoApi.upsertCita(cita.toEntity())
-                result > 0
+                result != 0L //INSERT(retorna: ID) - UPDATE(retorna: -1)
             }.recoverCatching {
                 if (it is CancellationException) throw it
                 throw LocalStorageException("${it.message}")

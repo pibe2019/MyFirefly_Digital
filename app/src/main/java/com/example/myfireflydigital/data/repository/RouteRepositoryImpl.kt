@@ -17,7 +17,9 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import javax.inject.Singleton
 
+@Singleton
 class RouteRepositoryImpl @Inject constructor(private val routeApiService: RouteApiService, @IoDispatcher private val ioDispatcher: CoroutineDispatcher) : RouteRepository {
 
     override suspend fun getRoute(origin: LatLng,destination: LatLng): Result<RouteResult> =

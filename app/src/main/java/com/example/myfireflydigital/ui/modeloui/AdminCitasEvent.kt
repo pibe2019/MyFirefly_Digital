@@ -4,10 +4,11 @@ import com.example.myfireflydigital.domain.model.Cita
 
 sealed interface AdminCitasEvent {
     /*CRUD CITAS*/
-    data class OnUpsertCita(val cita: Cita) : AdminCitasEvent
-    data class  OnDeleteCita(val cita: Cita)  : AdminCitasEvent //detalle
-    data class OnLongPressCitaOpenSheet(val id: Int)  : AdminCitasEvent //editar
-    data class  OnSelectCita(val id: Int)     : AdminCitasEvent
+    data class OnUpsertCita(val cita: Cita)            : AdminCitasEvent
+    data class  OnDeleteCita(val cita: Cita)           : AdminCitasEvent //detalle
+    data class OnLongPressCitaOpenSheet(val id: Int)   : AdminCitasEvent //editar
+    data class  OnSelectCita(val id: Int)              : AdminCitasEvent
+    data class OnSearchQueryChanged(val query: String) : AdminCitasEvent //AL CAMBIAR LA CONSULTA DE BUSQUEDA
     /* SHEET */
     data object OnOpenSheet                   : AdminCitasEvent
     data object OnCloseSheet                  : AdminCitasEvent

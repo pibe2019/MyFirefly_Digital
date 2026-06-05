@@ -1,5 +1,10 @@
 package com.example.myfireflydigital.ui.mapcitas
 
+import android.app.Activity
+import android.content.Intent
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -70,12 +76,22 @@ fun MapCitasScreen(
         rememberPermissionState(android.Manifest.permission.ACCESS_FINE_LOCATION)
     // 2. Estado de la Cámara
     val cameraPositionState = rememberCameraPositionState { position = CameraPosition.fromLatLngZoom(LatLng(-8.07, -79.11), 12f) }
+    val gpsLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            mapCitasViewModel.onEvent(MapCitasEvent.OnMyLocation)  // GPS activado → directo
+        }
+        // RESULT_CANCELED → silencio, el botón sigue disponible
+    }
+
+
     // 3. CUANDO SE CONCEDE EL PERMISO AVISAR AL ViewModel
     LaunchedEffect(locationPermissionState.status) {
         if (!locationPermissionState.status.isGranted) showDialog = true
-        else mapCitasViewModel.OnEvent(MapCitasEvent.OnMyLocation)//.onCurrentLocation()
+        else mapCitasViewModel.onEvent(MapCitasEvent.OnMyLocation)//.onCurrentLocation()
     }
-    LaunchedEffect(uiMapState.userLocation) {
+    LaunchedEffect(uiMapState.locationUpdateTick) {
         uiMapState.userLocation?.let {
             cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(it, 15f))
         }
@@ -87,6 +103,9 @@ fun MapCitasScreen(
                     val mensajeSnack = effect.message.messageApp?.asString(context) ?: return@collectLatest
                     snackbarHostState.showSnackbar(mensajeSnack)
                 }
+                is UiEffect.RequestGpsEnable -> gpsLauncher.launch(effect.intentSenderRequest) //dialog in-app
+
+
             }
         }
     }
@@ -97,8 +116,8 @@ fun MapCitasScreen(
         sheetShape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp),
         snackbarHost = {SnackbarHost(snackbarHostState)},
         sheetContent = {
-            CitasSheetContent(uiMapState.citas, uiMapState.isLoadingCitas, onClickCita = {cita -> mapCitasViewModel.OnEvent(MapCitasEvent.OnSelectCita(cita))
-            }, citaSelecId = uiMapState.citaSelecId,onDetalleClick = onNavigateToDetalleCita)
+            CitasSheetContent(uiMapState.citas, uiMapState.isLoadingCitas, onClickCita = {cita -> mapCitasViewModel.onEvent(MapCitasEvent.OnSelectCita(cita))
+            }, citaSelecId = uiMapState.citaSelecId,onDetalleClick = onNavigateToDetalleCita, onCancelarCita = {citaId -> mapCitasViewModel.onEvent(MapCitasEvent.OnCancelarCita(citaId)) })
         }
     ){ paddingValues ->
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
@@ -107,10 +126,11 @@ fun MapCitasScreen(
                     cameraPositionState = cameraPositionState,
                     properties = uiMapState.properties,
                     userLocation = uiMapState.userLocation,
-                    onMapLoaded = {mapCitasViewModel.OnEvent(MapCitasEvent.OnMapLoaded)},
+                    onMapLoaded = {mapCitasViewModel.onEvent(MapCitasEvent.OnMapLoaded)},
                     citas = uiMapState.citas,
                     routeInfo = uiMapState.routeInfo,
-                    citaSelecId = uiMapState.citaSelecId
+                    citaSelecId = uiMapState.citaSelecId,
+                    onMyLocationButtonClick = {mapCitasViewModel.onEvent(MapCitasEvent.OnMyLocationButtonClick)}
                 )
             }else {
                 Box(Modifier.fillMaxSize().background(Color.DarkGray))
@@ -135,14 +155,19 @@ fun MapsCitas(
     onMapLoaded: ()->Unit,
     citas: List<Cita> = emptyList(),
     routeInfo: RouteInfo? = null,
-    citaSelecId: Int? = null
+    citaSelecId: Int? = null,
+    onMyLocationButtonClick: () -> Unit
 ) {
     GoogleMap(
         modifier = modifier.fillMaxSize(),
         cameraPositionState = cameraPositionState,
         properties = properties,
         uiSettings = MapUiSettings(myLocationButtonEnabled = true),
-        onMapLoaded = onMapLoaded
+        onMapLoaded = onMapLoaded,
+        onMyLocationButtonClick = {
+            onMyLocationButtonClick()
+            true
+        }
     ) {
         //MARCADORES DE TODAS LAS CITAS Y SE RESALTA EL MARKER DE LA CITA SEECCIONADA
         citas.forEach { cita ->

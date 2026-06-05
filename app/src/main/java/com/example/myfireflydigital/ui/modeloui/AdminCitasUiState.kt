@@ -10,6 +10,7 @@ data class AdminCitasUiState(
     val citas: List<Cita> = emptyList(),
     val isLoading: Boolean = false,
     val error: AppMessage? = null,
+    val searchQuery: String = "",
     //SHEET CREAR-EDITAR
     val isSheetVisible: Boolean = false, // Control centralizado del Sheet
     val citaSelectEnEdicion: Cita? = null,//edi-detalle- o nueva

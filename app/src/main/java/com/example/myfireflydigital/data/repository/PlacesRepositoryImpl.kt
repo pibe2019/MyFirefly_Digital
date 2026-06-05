@@ -4,10 +4,12 @@ import android.annotation.SuppressLint
 import android.location.Address
 import android.location.Geocoder
 import android.os.Build
+import android.util.Log
 import com.example.myfireflydigital.data.source.LocationProvider
 import com.example.myfireflydigital.di.IoDispatcher
 import com.example.myfireflydigital.domain.exceptions.GeoLocationDisableException
 import com.example.myfireflydigital.domain.exceptions.GeoLocationPermissionDeniedException
+import com.example.myfireflydigital.domain.exceptions.GeoLocationResolvableException
 import com.example.myfireflydigital.domain.exceptions.GeoLocationUnknownException
 import com.example.myfireflydigital.domain.exceptions.GeocoderException
 import com.example.myfireflydigital.domain.exceptions.GeocoderNotAvailableException
@@ -15,6 +17,7 @@ import com.example.myfireflydigital.domain.exceptions.PlaceServiceException
 import com.example.myfireflydigital.domain.model.PlaceLocation
 import com.example.myfireflydigital.domain.model.PlacePrediction
 import com.example.myfireflydigital.domain.repository.PlacesRepository
+import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.libraries.places.api.model.AutocompleteSessionToken
 import com.google.android.libraries.places.api.model.Place
@@ -125,13 +128,16 @@ class PlacesRepositoryImpl @Inject constructor(
     @SuppressLint("MissingPermission")//permisos de ubicacion
     override suspend fun getCurrentLocation(): Result<LatLng> {
         return runCatching {
+            Log.d("TAG", "getCurrentLocation 1: ${locationProvider.fetchCurrentLocation()}")
             locationProvider.fetchCurrentLocation()
         }.recoverCatching {
+            Log.d("TAG", "getCurrentLocation 2: ${it.message}")
             if ( it is CancellationException) throw it
             when(it){
+                is ResolvableApiException -> throw GeoLocationResolvableException(it.resolution.intentSender)
                 is SecurityException -> throw GeoLocationPermissionDeniedException()
-                is GeoLocationDisableException -> throw GeoLocationDisableException()
-                is GeoLocationUnknownException -> throw GeoLocationUnknownException()
+                is GeoLocationUnknownException -> throw it
+                //is GeoLocationUnknownException -> throw GeoLocationUnknownException()
                 else -> throw GeoLocationUnknownException("${it.message}")
             }
         }

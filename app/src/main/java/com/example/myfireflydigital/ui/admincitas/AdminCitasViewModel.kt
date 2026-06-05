@@ -54,6 +54,7 @@ class AdminCitasViewModel @Inject constructor(
     private val getCurrentLocationUseCase: GetCurrentLocationUseCase//ubicacion nactual
 ) : ViewModel() {
     private val _addressQuery = MutableStateFlow("")
+    private val _searchQuery = MutableStateFlow("")
 
     @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
     private val searchFlow = _addressQuery
@@ -68,9 +69,9 @@ class AdminCitasViewModel @Inject constructor(
                     result.onSuccess { listPredictions ->
                         emit(listPredictions)
                     }.onFailure { error ->
-                        if (error is CancellationException) return@onFailure
+                        //if (error is CancellationException) return@onFailure
                         val mensaje = AppMessage.Error(error.toUiText())
-                        _uiEffect.trySend(UiEffect.ShowSnackbar(mensaje))
+                        _uiEffect.send(UiEffect.ShowSnackbar(mensaje))
                         emit(emptyList())
                     }
                 }
@@ -83,9 +84,18 @@ class AdminCitasViewModel @Inject constructor(
     val uiState: StateFlow<AdminCitasUiState> = combine(
         _uiState,
         getCitasObserverUseCase(),
-        searchFlow
-    ) { uiState, citasFromDb, predictions ->
-        uiState.copy(citas = citasFromDb, isLoading = false, placePredictions = predictions, isLoadingSearchingPlace = if(predictions.isEmpty() || uiState.addressQuery.cleanInput().length<=3) { false } else { uiState.isLoadingSearchingPlace}) // si hay predicciones o consulta corta apaga isLoadingSearchingPlace
+        searchFlow,
+        _searchQuery
+    ) { uiState, citasFromDb, predictions, searchQuery ->
+        val citasFistradas = if(searchQuery.isBlank()) citasFromDb
+        else citasFromDb.filter { cita ->
+            cita.titulo.contains(searchQuery, ignoreCase = true) || cita.direccion.contains(searchQuery, ignoreCase = true)
+        }
+        val isLoadingSearchPlace = when{
+            predictions.isEmpty() || uiState.addressQuery.cleanInput().length<=3 -> false
+            else -> uiState.isLoadingSearchingPlace
+        }
+        uiState.copy(citas = citasFistradas, searchQuery = searchQuery, isLoading = false, placePredictions = predictions, isLoadingSearchingPlace = isLoadingSearchPlace) // si hay predicciones o consulta corta apaga isLoadingSearchingPlace
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -93,22 +103,15 @@ class AdminCitasViewModel @Inject constructor(
     )
 
     /*para EL debounce - cancelar si el usuario vuelve a escribir antes del tiempo establecido*/
-    var reverseGeocodeJob: Job? = null
+    private var reverseGeocodeJob: Job? = null
 
-    //STADOS DERIVADOS
-    val citasObserver: StateFlow<List<Cita>> = getCitasObserverUseCase()
-        //.onEach(::getCitasObserve)
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
-
+// explicame lo de complejidad 31.  - citasObserver en AdminCitasViewModel es un StateFlow duplicado que nunca se usa , explicame. explicame que es un mid, mid-junior-mid-senior
     fun onEvent(event: AdminCitasEvent) {
         when (event) {
-            is AdminCitasEvent.OnUpsertCita -> upsertCita(event.cita)
-            is AdminCitasEvent.OnDeleteCita -> deleteCita(event.cita)
-            is AdminCitasEvent.OnSelectCita -> getCitasById(event.id)
+            is AdminCitasEvent.OnUpsertCita         -> upsertCita(event.cita)
+            is AdminCitasEvent.OnDeleteCita           -> deleteCita(event.cita)
+            is AdminCitasEvent.OnSelectCita           -> getCitasById(event.id)
+            is AdminCitasEvent.OnSearchQueryChanged   -> _searchQuery.value = event.query
             is AdminCitasEvent.OnLongPressCitaOpenSheet -> openSheetForEdit(event.id)
             AdminCitasEvent.OnOpenSheet -> {
                 _addressQuery.value = ""

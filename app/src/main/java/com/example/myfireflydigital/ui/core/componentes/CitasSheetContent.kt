@@ -1,6 +1,5 @@
 package com.example.myfireflydigital.ui.core.componentes
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -8,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -17,8 +15,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.MedicalServices
-import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -34,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.myfireflydigital.domain.model.Cita
+import com.example.myfireflydigital.domain.model.result.EstadoCita
 import com.example.myfireflydigital.ui.core.util.toBadgeConfig
 
 @Composable
@@ -42,7 +39,8 @@ fun CitasSheetContent(
     isLoadingCitas: Boolean,
     onClickCita: (Cita) -> Unit,
     citaSelecId: Int?,
-    onDetalleClick: (Int) -> Unit
+    onDetalleClick: (Int) -> Unit,
+    onCancelarCita: (Int) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxHeight(0.5f)) {
         Text(
@@ -65,7 +63,8 @@ fun CitasSheetContent(
                         cita = cita,
                         onClick = { onClickCita(cita) },
                         isSelected = cita.id == citaSelecId,
-                        onDetalleClick = {onDetalleClick(cita.id)}
+                        onDetalleClick = {onDetalleClick(cita.id)},
+                        onCancelarCita = {onCancelarCita(cita.id)}
                     )
                 }
             }
@@ -75,11 +74,11 @@ fun CitasSheetContent(
 }
 
 @Composable
-fun CitaCardItem(cita: Cita, onClick: () -> Unit, isSelected: Boolean, onDetalleClick: () -> Unit) {
+fun CitaCardItem(cita: Cita, onClick: () -> Unit, isSelected: Boolean, onDetalleClick: () -> Unit, onCancelarCita: () -> Unit) {
+    val (estadoLabel, estadoColor) = cita.estado.toBadgeConfig()
     Card(
         modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = {}),
+            .fillMaxWidth(),
         onClick = { onClick() },
         enabled = cita.latitud != 0.0,
         elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 6.dp else 2.dp),
@@ -96,13 +95,13 @@ fun CitaCardItem(cita: Cita, onClick: () -> Unit, isSelected: Boolean, onDetalle
                     Spacer(modifier = Modifier.weight(1f))
                     Button(
                         onClick = {},
-                        colors = ButtonDefaults.buttonColors(containerColor = cita.estado.toBadgeConfig().second),
+                        colors = ButtonDefaults.buttonColors(containerColor = estadoColor),
                         modifier = Modifier,
                         shape = RoundedCornerShape(8.dp),
                         contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
                     ) {
                         Text(
-                            text = cita.estado.toBadgeConfig().first,
+                            text = estadoLabel,
                             style = MaterialTheme.typography.labelSmall
                         )
                     }
@@ -112,7 +111,7 @@ fun CitaCardItem(cita: Cita, onClick: () -> Unit, isSelected: Boolean, onDetalle
                         Icons.Default.LocationOn,
                         modifier = Modifier.size(14.dp),
                         contentDescription = null,
-                        tint = Color.Red
+                        tint = estadoColor//Color.Red
                     )
                     Spacer(modifier = Modifier.width(3.dp))
                     Text(text = cita.direccion, style = MaterialTheme.typography.bodySmall)
@@ -121,15 +120,17 @@ fun CitaCardItem(cita: Cita, onClick: () -> Unit, isSelected: Boolean, onDetalle
                 }
                 Text(text = cita.fecha, style = MaterialTheme.typography.bodySmall)
                 Row() {
-                    TextButton(
-                        onClick = {},
-                        modifier = Modifier,
-                        colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
-                    ) {
-                        Text(
-                            text = "Cancelar Visita",
-                            style = MaterialTheme.typography.titleMedium
-                        )
+                    if (cita.estado != EstadoCita.VISITADO && cita.estado != EstadoCita.CANCELADO){
+                        TextButton(
+                            onClick = {onCancelarCita()},
+                            modifier = Modifier,
+                            colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
+                        ) {
+                            Text(
+                                text = "Cancelar Visita",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        }
                     }
                     Spacer(modifier = Modifier.weight(1f))
                     TextButton(onClick = onDetalleClick, modifier = Modifier) {

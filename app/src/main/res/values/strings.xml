@@ -16,4 +16,8 @@
     <!-- Unknown s(string) ,d(int)-->
     <string name="error_unknown">Error inesperado (%1$s)</string>
 
+    <!-- Citas en la UI-->
+    <string name="estado_actualizado">Estado actualizado</string>
+    <string name="warning_cita_cancelada">Cita Cancelada</string>
+
 </resources>

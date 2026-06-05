@@ -2,11 +2,12 @@ package com.example.myfireflydigital.data.source
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.location.LocationManager
 import com.example.myfireflydigital.di.IoDispatcher
-import com.example.myfireflydigital.domain.exceptions.GeoLocationDisableException
 import com.example.myfireflydigital.domain.exceptions.GeoLocationUnknownException
 import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.LocationSettingsRequest
 import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.model.LatLng
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -19,13 +20,19 @@ class LocationProvider @Inject constructor(private val fusedLocationProviderClie
 
     @SuppressLint("MissingPermission")
     suspend fun fetchCurrentLocation(): LatLng = withContext(ioDispatcher){
-        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        //Verifica si GPS está listo via SettingsClient
+        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 0).build()
+        val settingsRequest = LocationSettingsRequest.Builder().addLocationRequest(locationRequest).build()
+        // lanza ResolvableApiException si GPS apagado
+        LocationServices.getSettingsClient(context).checkLocationSettings(settingsRequest).await()
+
+        /*val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
         val isGpsEnable = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
         val isNetworkEnable = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
 
         if(!isGpsEnable && !isNetworkEnable) {
             throw GeoLocationDisableException()
-        }
+        }*/
 
         val location = fusedLocationProviderClient.getCurrentLocation(
             Priority.PRIORITY_HIGH_ACCURACY,

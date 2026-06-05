@@ -111,7 +111,7 @@ dependencies {
     implementation(libs.accompanist.permissions)
 
     // UTILITY LIBRARY - Para decodificar polilíneas, clustering, etc.-
-    implementation("com.google.maps.android:maps-utils-ktx:6.0.1")
+    implementation(libs.maps.utils.ktx)
     // Coroutines play-services (.await() sobre Task<T>)
     //implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
 
