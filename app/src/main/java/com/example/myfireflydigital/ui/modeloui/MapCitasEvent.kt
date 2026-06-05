@@ -1,8 +1,6 @@
 package com.example.myfireflydigital.ui.modeloui
 
-import androidx.activity.result.IntentSenderRequest
 import com.example.myfireflydigital.domain.model.Cita
-import com.example.myfireflydigital.domain.model.result.EstadoCita
 
 sealed interface MapCitasEvent {
     data object OnMapLoaded                     : MapCitasEvent
