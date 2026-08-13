@@ -13,8 +13,8 @@ fun Throwable.toUiText(): UiText = when(this) {
     is GeocoderNotAvailableException -> UiText.StringResource(R.string.error_geocoder_not_available)
     is GeocoderException -> UiText.DynamicString(messageGeocoder)
     //GEOLOCALIZATION
-    is GeoLocationPermissionDeniedException -> UiText.StringResource(R.string.error_geo_location_permission_denied)
-    is GeoLocationDisableException -> UiText.StringResource(R.string.error_geo_location_disable)
+    //is GeoLocationPermissionDeniedException -> UiText.StringResource(R.string.error_geo_location_permission_denied)
+    //is GeoLocationDisableException -> UiText.StringResource(R.string.error_geo_location_disable)
     is GeoLocationUnknownException -> UiText.DynamicString(messageGeoLocation)
     is RouteNotFoundException -> UiText.StringResource(R.string.error_route_not_found)
     is RouteServiceException -> UiText.StringResource(R.string.error_route_service,messageRoutingService)

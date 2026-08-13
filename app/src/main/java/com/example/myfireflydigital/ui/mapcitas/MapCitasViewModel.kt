@@ -1,7 +1,6 @@
 package com.example.myfireflydigital.ui.mapcitas
 
 import android.util.Log
-import androidx.activity.result.IntentSenderRequest
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myfireflydigital.R
@@ -9,16 +8,15 @@ import com.example.myfireflydigital.domain.exceptions.GeoLocationResolvableExcep
 import com.example.myfireflydigital.domain.exceptions.toUiText
 import com.example.myfireflydigital.domain.model.AppMessage
 import com.example.myfireflydigital.domain.model.Cita
+import com.example.myfireflydigital.domain.model.RouteResult
 import com.example.myfireflydigital.domain.model.result.EstadoCita
 import com.example.myfireflydigital.domain.usecase.GetCitasObserverUseCase
 import com.example.myfireflydigital.domain.usecase.GetCurrentLocationUseCase
 import com.example.myfireflydigital.domain.usecase.GetRouteUseCase
 import com.example.myfireflydigital.domain.usecase.UpsertCitaUseCase
 import com.example.myfireflydigital.domain.util.UiText
-import com.example.myfireflydigital.ui.modeloui.AdminCitasUiState
 import com.example.myfireflydigital.ui.modeloui.MapCitasEvent
 import com.example.myfireflydigital.ui.modeloui.MapUiState
-import com.example.myfireflydigital.ui.modeloui.RouteInfo
 import com.example.myfireflydigital.ui.modeloui.UiEffect
 import com.google.android.gms.maps.model.LatLng
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -48,11 +46,11 @@ class MapCitasViewModel @Inject constructor(
         _uiMapState,
         getCitasObserverUseCase()
     ) { uiState, citasFromDb ->
-        uiState.copy(citas = citasFromDb)
+        uiState.copy(citas = citasFromDb, isCitasLoaded = citasFromDb.isNotEmpty())
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
-        initialValue = MapUiState(isLoadingCitas = true, isLoadingMap = true)
+        initialValue = MapUiState(/*isCitasLoaded = false, isMapLoaded = false*/)
     )
     private val _effect = Channel<UiEffect>(Channel.CONFLATED)//SOLO GUARDA EL ULTIMO AVISO
     val effect = _effect.receiveAsFlow()
@@ -61,7 +59,7 @@ class MapCitasViewModel @Inject constructor(
 
     fun onEvent(event: MapCitasEvent) {
         when (event) {
-            MapCitasEvent.OnMapLoaded -> _uiMapState.update { it.copy(isLoadingMap = false) }
+            MapCitasEvent.OnMapLoaded -> _uiMapState.update { it.copy(isMapLoaded = true) }
             MapCitasEvent.OnMyLocation -> onMyLocation()
             is MapCitasEvent.OnSelectCita -> onSelectCita(event.cita)
             MapCitasEvent.OnClearRoute -> onClearRoute()
@@ -78,18 +76,20 @@ class MapCitasViewModel @Inject constructor(
                     it.copy(
                         userLocation = latLng,
                         locationUpdateTick = it.locationUpdateTick + 1,
-                        properties = it.properties.copy(isMyLocationEnabled = true)
+                        //properties = it.properties.copy(isMyLocationEnabled = true)
                     )
                 }
             }.onFailure { error ->
                 when(error){
                     is GeoLocationResolvableException ->{
-                        _uiMapState.update { it.copy(properties = it.properties.copy(isMyLocationEnabled = true)) }
-                        val request = IntentSenderRequest.Builder(error.intentSender).build()
-                        _effect.send(UiEffect.RequestGpsEnable(request))
+                        Log.d("MapCitasViewModel", "onMyLocation_1: ${error.message}")
+                        //_uiMapState.update { it.copy(properties = it.properties.copy(isMyLocationEnabled = true)) }
+                        //val request = IntentSenderRequest.Builder(error.intentSender).build()
+                        _effect.send(UiEffect.RequestGpsEnable(error.intentSender))
                     }
                     else -> _effect.send(UiEffect.ShowSnackbar(AppMessage.Error(error.toUiText())))
                 }
+                Log.d("MapCitasViewModel", "onMyLocation_2: ${error.message}")
             }
         }
     }
@@ -107,7 +107,7 @@ class MapCitasViewModel @Inject constructor(
         //CANCELA si el user cambio de cita rapidamente antes que responda la peticion de getRouteUseCase()
         Log.d("MapCitasViewModel", "onSelectCita: ${cita.id}")
         routerJob?.cancel()
-        viewModelScope.launch {
+        routerJob = viewModelScope.launch {
             _uiMapState.update {
                 it.copy(
                     isLoadingRouteUbi = true,
@@ -117,9 +117,9 @@ class MapCitasViewModel @Inject constructor(
             }
             getRouteUseCase(userLocation, LatLng(cita.latitud, cita.longitud))
                 .onSuccess { routeInfo ->
-                    _uiMapState.update { it.copy(isLoadingRouteUbi = false, routeInfo = RouteInfo(routeInfo.points, routeInfo.distance, routeInfo.duration)) }
+                    _uiMapState.update { it.copy(isLoadingRouteUbi = false, routeInfo = RouteResult(routeInfo.routePoints, routeInfo.distance, routeInfo.duration)) }
                 }.onFailure {
-                    _uiMapState.update { it.copy(isLoadingRouteUbi = false, citaSelecId = null) }
+                    _uiMapState.update { it.copy(isLoadingRouteUbi = false) }
                     _effect.send(UiEffect.ShowSnackbar(AppMessage.Error(it.toUiText())))
                 }
         }

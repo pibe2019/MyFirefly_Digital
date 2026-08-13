@@ -48,7 +48,7 @@ fun CitasSheetContent(
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(start = 20.dp, bottom = 10.dp)
         )
-        if (isLoadingCitas) CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+        //if (!isLoadingCitas) CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
         LazyColumn(
             modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 8.dp),

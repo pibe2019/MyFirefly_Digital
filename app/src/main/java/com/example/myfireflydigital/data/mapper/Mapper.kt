@@ -12,7 +12,7 @@ fun CitaEntity.toDomain(): Cita = Cita(id, titulo, direccion, fecha, hora, latit
 fun Cita.toEntity(): CitaEntity = CitaEntity(id, titulo, direccion, fecha, hora, latitud, longitud, estado.name)
 
 fun RouteDto.toDomain(): RouteResult = RouteResult(
-    points = PolyUtil.decode(polyline?.encodedPolyline.orEmpty()),
+    routePoints = PolyUtil.decode(polyline?.encodedPolyline.orEmpty()),
     distance = formatDistance(distanceMeters),
     duration = formatDuration(duration)
 )

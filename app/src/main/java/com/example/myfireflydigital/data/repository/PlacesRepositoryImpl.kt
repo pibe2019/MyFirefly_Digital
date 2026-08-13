@@ -7,8 +7,6 @@ import android.os.Build
 import android.util.Log
 import com.example.myfireflydigital.data.source.LocationProvider
 import com.example.myfireflydigital.di.IoDispatcher
-import com.example.myfireflydigital.domain.exceptions.GeoLocationDisableException
-import com.example.myfireflydigital.domain.exceptions.GeoLocationPermissionDeniedException
 import com.example.myfireflydigital.domain.exceptions.GeoLocationResolvableException
 import com.example.myfireflydigital.domain.exceptions.GeoLocationUnknownException
 import com.example.myfireflydigital.domain.exceptions.GeocoderException
@@ -25,6 +23,8 @@ import com.google.android.libraries.places.api.net.FetchPlaceRequest
 import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest
 import com.google.android.libraries.places.api.net.PlacesClient
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -124,7 +124,7 @@ class PlacesRepositoryImpl @Inject constructor(
         }
     }
 
-    /* OBTENEMOS LA UBICACION - Manejamos el riesgo con SecurityException en recoverCatching */
+    /* OBTENEMOS LA UBICACION  */
     @SuppressLint("MissingPermission")//permisos de ubicacion
     override suspend fun getCurrentLocation(): Result<LatLng> {
         return runCatching {
@@ -135,7 +135,7 @@ class PlacesRepositoryImpl @Inject constructor(
             if ( it is CancellationException) throw it
             when(it){
                 is ResolvableApiException -> throw GeoLocationResolvableException(it.resolution.intentSender)
-                is SecurityException -> throw GeoLocationPermissionDeniedException()
+                //is SecurityException -> throw GeoLocationPermissionDeniedException()
                 is GeoLocationUnknownException -> throw it
                 //is GeoLocationUnknownException -> throw GeoLocationUnknownException()
                 else -> throw GeoLocationUnknownException("${it.message}")
@@ -143,5 +143,6 @@ class PlacesRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun observerLocation(): Flow<LatLng> = locationProvider.locationUpdates()
 
 }

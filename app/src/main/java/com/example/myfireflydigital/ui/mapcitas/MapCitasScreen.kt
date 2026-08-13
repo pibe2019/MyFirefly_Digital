@@ -4,18 +4,24 @@ import android.app.Activity
 import android.content.Intent
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -27,6 +33,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.myfireflydigital.domain.model.Cita
+import com.example.myfireflydigital.domain.model.RouteResult
 import com.example.myfireflydigital.ui.core.componentes.CitasSheetContent
 import com.example.myfireflydigital.ui.modeloui.MapCitasEvent
 import com.example.myfireflydigital.ui.modeloui.RouteInfo
@@ -49,10 +57,9 @@ import com.google.accompanist.permissions.shouldShowRationale
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.Marker
-import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
+import com.google.maps.android.compose.MapType
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
@@ -74,8 +81,6 @@ fun MapCitasScreen(
     // 1:estado del permiso
     val locationPermissionState =
         rememberPermissionState(android.Manifest.permission.ACCESS_FINE_LOCATION)
-    // 2. Estado de la Cámara
-    val cameraPositionState = rememberCameraPositionState { position = CameraPosition.fromLatLngZoom(LatLng(-8.07, -79.11), 12f) }
     val gpsLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
@@ -91,11 +96,7 @@ fun MapCitasScreen(
         if (!locationPermissionState.status.isGranted) showDialog = true
         else mapCitasViewModel.onEvent(MapCitasEvent.OnMyLocation)//.onCurrentLocation()
     }
-    LaunchedEffect(uiMapState.locationUpdateTick) {
-        uiMapState.userLocation?.let {
-            cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(it, 15f))
-        }
-    }
+
     LaunchedEffect(Unit) {
         mapCitasViewModel.effect.collectLatest {  effect ->
             when(effect){
@@ -103,9 +104,7 @@ fun MapCitasScreen(
                     val mensajeSnack = effect.message.messageApp?.asString(context) ?: return@collectLatest
                     snackbarHostState.showSnackbar(mensajeSnack)
                 }
-                is UiEffect.RequestGpsEnable -> gpsLauncher.launch(effect.intentSenderRequest) //dialog in-app
-
-
+                is UiEffect.RequestGpsEnable -> gpsLauncher.launch(IntentSenderRequest.Builder(effect.intentSender).build()) //dialog in-app
             }
         }
     }
@@ -116,16 +115,16 @@ fun MapCitasScreen(
         sheetShape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp),
         snackbarHost = {SnackbarHost(snackbarHostState)},
         sheetContent = {
-            CitasSheetContent(uiMapState.citas, uiMapState.isLoadingCitas, onClickCita = {cita -> mapCitasViewModel.onEvent(MapCitasEvent.OnSelectCita(cita))
+            CitasSheetContent(uiMapState.citas, uiMapState.isCitasLoaded, onClickCita = {cita -> mapCitasViewModel.onEvent(MapCitasEvent.OnSelectCita(cita))
             }, citaSelecId = uiMapState.citaSelecId,onDetalleClick = onNavigateToDetalleCita, onCancelarCita = {citaId -> mapCitasViewModel.onEvent(MapCitasEvent.OnCancelarCita(citaId)) })
         }
     ){ paddingValues ->
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
             if (locationPermissionState.status.isGranted){
                 MapsCitas(
-                    cameraPositionState = cameraPositionState,
-                    properties = uiMapState.properties,
                     userLocation = uiMapState.userLocation,
+                    locationUpdateTick = uiMapState.locationUpdateTick,
+                    isMapLoaded = uiMapState.isMapLoaded,
                     onMapLoaded = {mapCitasViewModel.onEvent(MapCitasEvent.OnMapLoaded)},
                     citas = uiMapState.citas,
                     routeInfo = uiMapState.routeInfo,
@@ -139,8 +138,19 @@ fun MapCitasScreen(
                 //denego o no lo tengo
                 LocationPermissionRequestDialog(locationPermissionState, onDismiss = {showDialog=false})
             }
-            if (uiMapState.isLoadingMap) CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            //if (uiMapState.isLoadingMap) CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             if (uiMapState.isLoadingRouteUbi) CircularProgressIndicator(modifier = Modifier.align(Alignment.Center).background(Color.Green))
+        }
+    }
+    Box(modifier = Modifier.fillMaxSize()) {
+        AnimatedVisibility(
+            visible = !uiMapState.isMapLoaded || !uiMapState.isCitasLoaded,
+            modifier = Modifier.matchParentSize(),
+            exit = fadeOut()
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            }
         }
     }
 
@@ -149,52 +159,63 @@ fun MapCitasScreen(
 @Composable
 fun MapsCitas(
     modifier: Modifier = Modifier,
-    cameraPositionState: CameraPositionState,
-    properties: MapProperties,
     userLocation: LatLng?,
-    onMapLoaded: ()->Unit,
+    isMapLoaded: Boolean,
+    onMapLoaded: () -> Unit,
+    locationUpdateTick: Int,
     citas: List<Cita> = emptyList(),
-    routeInfo: RouteInfo? = null,
+    routeInfo: RouteResult? = null,
     citaSelecId: Int? = null,
     onMyLocationButtonClick: () -> Unit
 ) {
-    GoogleMap(
-        modifier = modifier.fillMaxSize(),
-        cameraPositionState = cameraPositionState,
-        properties = properties,
-        uiSettings = MapUiSettings(myLocationButtonEnabled = true),
-        onMapLoaded = onMapLoaded,
-        onMyLocationButtonClick = {
-            onMyLocationButtonClick()
-            true
+    //var isMapLoaded by rememberSaveable { mutableStateOf(false) }//esta cargado el mapa?
+    val properties = remember()  { MapProperties(isMyLocationEnabled = true, mapType = MapType.NORMAL) }
+    val uiSettings = remember { MapUiSettings(zoomControlsEnabled = false,mapToolbarEnabled = false, myLocationButtonEnabled = true) }
+    // Estado de la Cámara
+    val cameraPositionState = rememberCameraPositionState { position = CameraPosition.fromLatLngZoom(LatLng(-8.07, -79.11), 12f) }
+    LaunchedEffect(locationUpdateTick,isMapLoaded) {
+        if (isMapLoaded) {
+            userLocation?.let { cameraPositionState.animate(CameraUpdateFactory.newLatLngZoom(it, 15f)) }
         }
-    ) {
-        //MARCADORES DE TODAS LAS CITAS Y SE RESALTA EL MARKER DE LA CITA SEECCIONADA
-        citas.forEach { cita ->
-            Marker(
-                state = MarkerState(position = LatLng(cita.latitud, cita.longitud)),
-                title= cita.titulo,
-                snippet = cita.direccion,
-                alpha = if (citaSelecId == null || citaSelecId == cita.id) 1f else 0.5f
-            )
-        }
-        userLocation?.let {
-            Marker(
-                state = MarkerState(position = it),
-                title = "Mi ubicación",
-                snippet = "peru"
-            )
-        }
+    }
+    Box(modifier = Modifier.fillMaxSize()) {
+        GoogleMap(
+            modifier = modifier.fillMaxSize(),
+            cameraPositionState = cameraPositionState,
+            properties = properties,
+            uiSettings = uiSettings,
+            onMapLoaded = onMapLoaded,//onMapLoaded,
+            onMyLocationButtonClick = {
+                onMyLocationButtonClick()
+                true
+            }
+        ) {
+            //MARCADORES DE TODAS LAS CITAS Y SE RESALTA EL MARKER DE LA CITA SEECCIONADA
+            citas.forEach { cita ->
+                Marker(
+                    state = MarkerState(position = LatLng(cita.latitud, cita.longitud)),
+                    title = cita.titulo,
+                    snippet = cita.direccion,
+                    alpha = if (citaSelecId == null || citaSelecId == cita.id) 1f else 0.5f
+                )
+            }
+            userLocation?.let {
+                Marker(
+                    state = MarkerState(position = it),
+                    title = "Mi ubicación",
+                    snippet = "peru"
+                )
+            }
 
-        if (routeInfo != null){
-            Polyline(
-                points = routeInfo.routePoints,
-                color = Color(0xFF1A73E8),//Azul de Google
-                width = 10f,
-                geodesic = true
-            )
+            if (routeInfo != null) {
+                Polyline(
+                    points = routeInfo.routePoints,
+                    color = Color(0xFF1A73E8),//Azul de Google
+                    width = 10f,
+                    geodesic = true
+                )
+            }
         }
-
     }
 }
 
@@ -206,6 +227,7 @@ fun LocationPermissionRequestDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Default.LocationOn, contentDescription = null) },
         title = {
             Text(text = "Permiso de ubicación requerido",style = MaterialTheme.typography.titleLarge)
         },
