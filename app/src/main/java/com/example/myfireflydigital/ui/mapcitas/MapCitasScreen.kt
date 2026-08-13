@@ -1,5 +1,6 @@
 package com.example.myfireflydigital.ui.mapcitas
 
+import android.Manifest
 import android.app.Activity
 import android.content.Intent
 import android.provider.Settings
@@ -50,8 +51,10 @@ import com.example.myfireflydigital.ui.modeloui.MapCitasEvent
 import com.example.myfireflydigital.ui.modeloui.RouteInfo
 import com.example.myfireflydigital.ui.modeloui.UiEffect
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.MultiplePermissionsState
 import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -79,8 +82,8 @@ fun MapCitasScreen(
     val context = LocalContext.current
     val scaffoldState = rememberBottomSheetScaffoldState()
     // 1:estado del permiso
-    val locationPermissionState =
-        rememberPermissionState(android.Manifest.permission.ACCESS_FINE_LOCATION)
+    val locationPermissionState = rememberMultiplePermissionsState(listOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+    val locationGranted = locationPermissionState.permissions.any { it.status.isGranted } //alguno de los 2 esta selecionada (precisa, cercana)
     val gpsLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
@@ -92,9 +95,9 @@ fun MapCitasScreen(
 
 
     // 3. CUANDO SE CONCEDE EL PERMISO AVISAR AL ViewModel
-    LaunchedEffect(locationPermissionState.status) {
-        if (!locationPermissionState.status.isGranted) showDialog = true
-        else mapCitasViewModel.onEvent(MapCitasEvent.OnMyLocation)//.onCurrentLocation()
+    LaunchedEffect(locationGranted) {
+        if (locationGranted) mapCitasViewModel.onEvent(MapCitasEvent.OnMyLocation)//.onCurrentLocation()
+        showDialog = locationGranted
     }
 
     LaunchedEffect(Unit) {
@@ -120,21 +123,18 @@ fun MapCitasScreen(
         }
     ){ paddingValues ->
         Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
-            if (locationPermissionState.status.isGranted){
-                MapsCitas(
-                    userLocation = uiMapState.userLocation,
-                    locationUpdateTick = uiMapState.locationUpdateTick,
-                    isMapLoaded = uiMapState.isMapLoaded,
-                    onMapLoaded = {mapCitasViewModel.onEvent(MapCitasEvent.OnMapLoaded)},
-                    citas = uiMapState.citas,
-                    routeInfo = uiMapState.routeInfo,
-                    citaSelecId = uiMapState.citaSelecId,
-                    onMyLocationButtonClick = {mapCitasViewModel.onEvent(MapCitasEvent.OnMyLocationButtonClick)}
-                )
-            }else {
-                Box(Modifier.fillMaxSize().background(Color.DarkGray))
-            }
-            if (showDialog && (locationPermissionState.status.shouldShowRationale || !locationPermissionState.status.isGranted)){
+            MapsCitas(
+                userLocation = uiMapState.userLocation,
+                permissionGranted = locationGranted,
+                locationUpdateTick = uiMapState.locationUpdateTick,
+                isMapLoaded = uiMapState.isMapLoaded,
+                onMapLoaded = {mapCitasViewModel.onEvent(MapCitasEvent.OnMapLoaded)},
+                citas = uiMapState.citas,
+                routeInfo = uiMapState.routeInfo,
+                citaSelecId = uiMapState.citaSelecId,
+                onMyLocationButtonClick = {mapCitasViewModel.onEvent(MapCitasEvent.OnMyLocationButtonClick)}
+            )
+            if (showDialog && (locationPermissionState.shouldShowRationale || !locationGranted)){
                 //denego o no lo tengo
                 LocationPermissionRequestDialog(locationPermissionState, onDismiss = {showDialog=false})
             }
@@ -159,6 +159,7 @@ fun MapCitasScreen(
 @Composable
 fun MapsCitas(
     modifier: Modifier = Modifier,
+    permissionGranted: Boolean,
     userLocation: LatLng?,
     isMapLoaded: Boolean,
     onMapLoaded: () -> Unit,
@@ -169,7 +170,7 @@ fun MapsCitas(
     onMyLocationButtonClick: () -> Unit
 ) {
     //var isMapLoaded by rememberSaveable { mutableStateOf(false) }//esta cargado el mapa?
-    val properties = remember()  { MapProperties(isMyLocationEnabled = true, mapType = MapType.NORMAL) }
+    val properties = remember(permissionGranted)  { MapProperties(isMyLocationEnabled = permissionGranted, mapType = MapType.NORMAL) }
     val uiSettings = remember { MapUiSettings(zoomControlsEnabled = false,mapToolbarEnabled = false, myLocationButtonEnabled = true) }
     // Estado de la Cámara
     val cameraPositionState = rememberCameraPositionState { position = CameraPosition.fromLatLngZoom(LatLng(-8.07, -79.11), 12f) }
@@ -222,7 +223,7 @@ fun MapsCitas(
 @OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun LocationPermissionRequestDialog(
-    permissionState: PermissionState,
+    permissionState: MultiplePermissionsState,
     onDismiss: () -> Unit
 ) {
     AlertDialog(
@@ -234,7 +235,7 @@ fun LocationPermissionRequestDialog(
         text = {Text("Necesitamos tu ubicación para dibujar la ruta mas cercana.")},
         confirmButton = {
             Button(onClick = {
-                permissionState.launchPermissionRequest()
+                permissionState.launchMultiplePermissionRequest()
                 onDismiss()
             }) { Text("Aceptar") }
         },
