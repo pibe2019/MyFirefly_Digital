@@ -97,7 +97,7 @@ fun MapCitasScreen(
     // 3. CUANDO SE CONCEDE EL PERMISO AVISAR AL ViewModel
     LaunchedEffect(locationGranted) {
         if (locationGranted) mapCitasViewModel.onEvent(MapCitasEvent.OnMyLocation)//.onCurrentLocation()
-        showDialog = locationGranted
+        showDialog = !locationGranted
     }
 
     LaunchedEffect(Unit) {
