@@ -46,7 +46,7 @@ class MapCitasViewModel @Inject constructor(
         _uiMapState,
         getCitasObserverUseCase()
     ) { uiState, citasFromDb ->
-        uiState.copy(citas = citasFromDb, isCitasLoaded = citasFromDb.isNotEmpty())
+        uiState.copy(citas = citasFromDb, isCitasLoaded = true)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
